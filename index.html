@@ -3,90 +3,204 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
 
-    <meta name="description"
-          content="Explore Keshav's personal portfolio, web development projects, and programming skills.">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
 
-    <meta name="keywords"
-          content="Keshav, portfolio, HTML, CSS, web development, programming">
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #74ebd5, #9face6);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
 
-    <meta name="author" content="Keshav">
+        .container {
+            background: white;
+            width: 100%;
+            max-width: 420px;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 20px #00000020;
+        }
 
-    <title>Keshav's Portfolio | Web Development Projects</title>
+        h1 {
+            color: #263b80;
+        }
 
-    <link rel="stylesheet" href="style.css">
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #263b80;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #4058b0;
+        }
+
+        #weather {
+            margin-top: 22px;
+        }
+
+        .temperature {
+            font-size: 38px;
+            font-weight: bold;
+            color: #263b80;
+        }
+
+        .message {
+            color: #b00020;
+            margin-top: 15px;
+        }
+    </style>
 </head>
 
 <body>
+    <main class="container">
+        <h1>Weather App</h1>
+        <p>Enter a city to check its current weather.</p>
 
-    <header>
-        <h1>Welcome to My Portfolio</h1>
+        <form id="weatherForm">
+            <label for="city">City name</label>
+            <input
+                type="text"
+                id="city"
+                placeholder="Example: Delhi"
+                required
+            >
+            <button type="submit" id="searchButton">
+                Get Weather
+            </button>
+        </form>
 
-        <nav aria-label="Main navigation">
-            <a href="#home">Home</a>
-            <a href="#about">About</a>
-            <a href="#projects">Projects</a>
-            <a href="#contact">Contact</a>
-        </nav>
-    </header>
-
-    <main>
-        <section id="home" aria-labelledby="home-heading">
-            <h2 id="home-heading">Hello, I am Keshav</h2>
-            <p>I am an AI/ML student learning web development.</p>
-        </section>
-
-        <section id="about" aria-labelledby="about-heading">
-            <h2 id="about-heading">About Me</h2>
-            <p>
-                I am learning HTML and CSS and improving my programming
-                skills by building different projects.
-            </p>
-        </section>
-
-        <section id="projects" aria-labelledby="projects-heading">
-            <h2 id="projects-heading">My Projects</h2>
-
-            <article>
-                <h3>Personal Website</h3>
-                <p>A simple website created using HTML and CSS.</p>
-            </article>
-
-            <article>
-                <h3>Python Programs</h3>
-                <p>Programs created to practise basic programming.</p>
-            </article>
-
-            <article>
-                <h3>Portfolio Website</h3>
-                <p>A personal portfolio hosted using GitHub Pages.</p>
-            </article>
-        </section>
-
-        <section id="contact" aria-labelledby="contact-heading">
-            <h2 id="contact-heading">Contact Me</h2>
-
-            <form>
-                <label for="name">Your Name</label>
-                <input type="text" id="name" name="name" required>
-
-                <label for="email">Your Email</label>
-                <input type="email" id="email" name="email" required>
-
-                <label for="message">Your Message</label>
-                <textarea id="message" name="message"
-                          rows="5" required></textarea>
-
-                <button type="submit">Send Message</button>
-            </form>
-        </section>
+        <div id="weather" aria-live="polite"></div>
     </main>
 
-    <footer>
-        <p>&copy; 2026 Keshav's Portfolio</p>
-    </footer>
+    <script>
+        const form = document.getElementById("weatherForm");
+        const cityInput = document.getElementById("city");
+        const weatherDiv = document.getElementById("weather");
+        const searchButton = document.getElementById("searchButton");
 
+        form.addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            const city = cityInput.value.trim();
+
+            if (!city) {
+                weatherDiv.innerHTML =
+                    '<p class="message">Please enter a city name.</p>';
+                return;
+            }
+
+            weatherDiv.textContent = "Loading weather data...";
+            searchButton.disabled = true;
+
+            try {
+                // Step 1: Find the city's latitude and longitude
+                const geoURL =
+                    "https://geocoding-api.open-meteo.com/v1/search?name=" +
+                    encodeURIComponent(city) + "&count=1&language=en&format=json";
+
+                const geoResponse = await fetch(geoURL);
+
+                if (!geoResponse.ok) {
+                    throw new Error("Unable to find the city right now.");
+                }
+
+                const geoData = await geoResponse.json();
+
+                if (!geoData.results || geoData.results.length === 0) {
+                    throw new Error("City not found. Please try another name.");
+                }
+
+                const place = geoData.results[0];
+                const latitude = place.latitude;
+                const longitude = place.longitude;
+
+                // Step 2: Fetch current weather for that location
+                const weatherURL =
+                    "https://api.open-meteo.com/v1/forecast?latitude=" +
+                    latitude + "&longitude=" + longitude +
+                    "&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto";
+
+                const weatherResponse = await fetch(weatherURL);
+
+                if (!weatherResponse.ok) {
+                    throw new Error("Unable to fetch weather data.");
+                }
+
+                const weatherData = await weatherResponse.json();
+                const current = weatherData.current;
+
+                // Step 3: Convert weather codes into descriptions
+                const descriptions = {
+                    0: "Clear sky",
+                    1: "Mainly clear",
+                    2: "Partly cloudy",
+                    3: "Overcast",
+                    45: "Foggy",
+                    48: "Rime fog",
+                    51: "Light drizzle",
+                    53: "Moderate drizzle",
+                    55: "Heavy drizzle",
+                    61: "Light rain",
+                    63: "Moderate rain",
+                    65: "Heavy rain",
+                    71: "Light snowfall",
+                    73: "Moderate snowfall",
+                    75: "Heavy snowfall",
+                    80: "Rain showers",
+                    81: "Moderate rain showers",
+                    82: "Heavy rain showers",
+                    95: "Thunderstorm"
+                };
+
+                const description =
+                    descriptions[current.weather_code] || "Weather conditions";
+
+                // Step 4: Display the weather
+                weatherDiv.innerHTML = `
+                    <h2>${place.name}, ${place.country || ""}</h2>
+                    <p class="temperature">
+                        ${current.temperature_2m} °C
+                    </p>
+                    <p>${description}</p>
+                    <p>Feels like: ${current.apparent_temperature} °C</p>
+                    <p>Humidity: ${current.relative_humidity_2m}%</p>
+                    <p>Wind speed: ${current.wind_speed_10m} km/h</p>
+                    <p><small>Updated: ${current.time.replace("T", " ")}</small></p>
+                `;
+
+            } catch (error) {
+                weatherDiv.innerHTML =
+                    '<p class="message">' + error.message + '</p>';
+            } finally {
+                searchButton.disabled = false;
+            }
+        });
+    </script>
 </body>
 </html>
